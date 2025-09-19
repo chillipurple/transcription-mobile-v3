@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fadilas Mobile Transcriber</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #22c55e;
+      --danger: #ef4444;
+      --btn: #334155;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--bg); color: var(--text); }
+    header { background: linear-gradient(180deg, #0b1224 0%, #0f172a 100%); padding: 12px 12px 8px; border-bottom: 1px solid #1f2937; }
+    h1 { margin: 0; font-size: 18px; }
+    .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+    main { padding: 12px; display: grid; gap: 12px; max-width: 900px; margin: 0 auto; }
+
+    .card { background: var(--panel); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; }
+
+    .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+    input[type="file"], input[type="number"], select, button, input[type="text"], input[type="url"] { 
+      background: var(--panel-2); color: var(--text); border: 1px solid #374151; border-radius: 10px; padding: 10px 12px; font-size: 16px; 
+    }
+    input[type="number"] { width: 80px; }
+    input[type="url"] { flex: 1; min-width: 180px; }
+
+    button { cursor: pointer; border: 1px solid #4b5563; }
+    button.primary { background: var(--accent); color: #052e16; border-color: #16a34a; }
+    button.ghost { background: transparent; }
+    button.danger { background: var(--danger); color: #fff; border-color: #b91c1c; }
+
+    .controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 8px; }
+    .controls button { padding: 12px; font-weight: 600; border-radius: 12px; }
+    .controls .wide { grid-column: span 2; }
+
+    .small { font-size: 12px; color: var(--muted); }
+
+    textarea { width: 100%; min-height: 46vh; resize: vertical; background: var(--panel-2); border: 1px solid #374151; color: var(--text); padding: 12px; border-radius: 12px; line-height: 1.4; font-size: 16px; }
+
+    .toolbar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
+    .toolbar button, .toolbar select { padding: 10px; border-radius: 12px; }
+
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #0b4; color: #041; font-weight: 700; font-size: 12px; }
+
+    .grid-two { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 880px) { .grid-two { grid-template-columns: 1fr 1fr; } }
+
+    .hint { font-size: 13px; color: var(--muted); }
+    .kbd { background: #111; border: 1px solid #333; border-bottom-width: 2px; padding: 2px 6px; border-radius: 6px; font-size: 12px; }
+
+    .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px 0 40px; }
+  .mobile-dock{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--panel);border-top:1px solid #1f2937;padding:8px 12px;} .mobile-dock .dock-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;} .mobile-dock button{padding:14px;border-radius:12px;font-weight:700;} @media (min-width:880px){.mobile-dock{display:none;}} body.with-dock{padding-bottom:92px;} 
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Fadilas Mobile Transcriber</h1>
+    <div class="sub">Play audio + type the transcript on one screen. Everything stays on your phone (local only).</div>
+  </header>
+
+  <div id="envWarning" style="display:none; background:#7c2d12; color:#fff; padding:10px 12px; font-size:14px;">
+    If the file picker doesn’t open: tap the three dots ··· and choose <strong>Open in Chrome</strong>, or copy the link and open it in Chrome. Some in‑app browsers (WhatsApp/Instagram/Twitter) block file uploads. Also make sure the audio is saved on the phone (Downloads/Files), not just online in Drive.
+  </div>
+
+  <main>
+    <section class="card">
+      <div class="row" style="gap:10px; align-items:flex-start;">
+        <div class="row" style="gap:8px; flex-wrap:wrap;">
+          <label class="small" for="audioFile">1) Choose audio file</label>
+          <input id="audioFile" type="file" accept=".mp3,.m4a,.aac,.wav,.ogg,.oga,.3gp,.m4b,audio/*" />
+          <span id="fileName" class="small"></span>
+        </div>
+        <div class="row" style="gap:8px; flex:1; align-items:center;">
+          <label class="small" for="skipSeconds">Skip (sec)</label>
+          <input id="skipSeconds" type="number" value="5" min="1" max="30" />
+          <label class="small" for="speed">Speed</label>
+          <select id="speed">
+            <option value="0.4">0.4×</option>
+            <option value="0.5">0.5×</option>
+            <option value="0.6">0.6×</option>
+            <option value="0.7">0.7×</option>
+            <option value="0.8">0.8×</option>
+            <option value="0.9">0.9×</option>
+            <option value="1" selected>1.0×</option>
+            <option value="1.1">1.1×</option>
+            <option value="1.25">1.25×</option>
+            <option value="1.5">1.5×</option>
+          </select>
+          <span id="timeReadout" class="small">00:00 / 00:00</span>
+        </div>
+      </div>
+
+      <audio id="player" preload="metadata" style="width:0;height:0;opacity:0;position:absolute;pointer-events:none;" playsinline disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback" x-webkit-airplay="deny"></audio>
+
+      <div class="controls">
+        <button id="backBtn" class="wide">⏪ Back</button>
+        <button id="playBtn" class="primary">▶️ Play</button>
+        <button id="fwdBtn" class="wide">⏩ Forward</button>
+        <button id="setA">Set A</button>
+        <button id="setB">Set B</button>
+        <button id="toggleLoop" class="ghost">Loop: Off</button>
+      </div>
+
+      <div class="row small" style="justify-content:space-between; margin-top:6px;">
+        <div>Loop A: <span id="loopA">–</span> | B: <span id="loopB">–</span></div>
+        <div id="autosaveStatus">Autosave: <span class="badge" id="autosaveBadge">ON</span></div>
+      </div>
+    </section>
+
+    <section class="grid-two">
+      <section class="card" id="transcribeCard">
+        <div class="row" style="justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <strong>2) Type transcript here</strong>
+          <span class="small" id="countInfo">0 chars • 0 words</span>
+        </div>
+        <textarea id="editor" placeholder="Type what you hear… You can insert timestamps, add speaker labels, and save when done."></textarea>
+        <div class="toolbar">
+          <button id="insertTs">Insert timestamp</button>
+          <select id="speakerPreset">
+            <option value="">Speaker label…</option>
+            <option>Interviewer:</option>
+            <option>Translator:</option>
+            <option>Speaker 1:</option>
+            <option>Speaker 2:</option>
+          </select>
+          <button id="copyBtn">Copy text</button>
+          <button id="clearBtn" class="danger">Clear</button>
+          <button id="downloadBtn" class="primary wide">Download .txt</button>
+          <button id="markBtn" class="wide">Mark unclear ☐</button>
+        </div>
+        <div class="hint" style="margin-top:6px;">
+          Tips: Use the Back/Forward buttons to jump a few seconds. Slow the speed if needed. "Set A" and "Set B" define a loop. Timestamp inserts the current audio time like [00:03:12]. Everything auto‑saves on your device.
+        </div>
+      </section>
+
+      <section class="card">
+        <strong>3) Quick help</strong>
+        <ul class="hint">
+          <li>Load an <strong>audio file</strong> from your phone (MP3, M4A, WAV, etc.).</li>
+          <li>Press <strong>Play</strong>, then pause and rewind to transcribe.</li>
+          <li><strong>Insert timestamp</strong> adds the current time to your text.</li>
+          <li><strong>Loop</strong>: Set A and B, then toggle Loop. Great for tricky parts.</li>
+          <li><strong>Autosave</strong> keeps your draft locally (works offline). "Download .txt" to share.</li>
+          <li><strong>Privacy</strong>: No uploads. Everything stays on your device unless you share the .txt file.</li>
+        </ul>
+        <div class="hint" style="margin-top:8px;">Keyboard (if you attach one): <span class="kbd">Space</span> Play/Pause, <span class="kbd">←</span>/<span class="kbd">→</span> Skip, <span class="kbd">Ctrl/Cmd+S</span> Download.</div>
+      </section>
+    </section>
+
+    <div class="footer">v1.1 • Simple Mobile Transcriber • Local‑only, single‑file tool</div>
+    <div class="mobile-dock" id="mobileDock">
+      <div class="dock-grid">
+        <button id="dockBack">⏪ Back</button>
+        <button id="dockPlay" class="primary">▶️ Play</button>
+        <button id="dockFwd">⏩ Forward</button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const player = document.getElementById('player');
+    const audioFile = document.getElementById('audioFile');
+    const fileName = document.getElementById('fileName');
+    const backBtn = document.getElementById('backBtn');
+    const playBtn = document.getElementById('playBtn');
+    const fwdBtn = document.getElementById('fwdBtn');
+    const skipSeconds = document.getElementById('skipSeconds');
+    const speedSel = document.getElementById('speed');
+    const timeReadout = document.getElementById('timeReadout');
+
+    const setA = document.getElementById('setA');
+    const setB = document.getElementById('setB');
+    const toggleLoop = document.getElementById('toggleLoop');
+    const loopA = document.getElementById('loopA');
+    const loopB = document.getElementById('loopB');
+
+    const editor = document.getElementById('editor');
+    const insertTs = document.getElementById('insertTs');
+    const speakerPreset = document.getElementById('speakerPreset');
+    const copyBtn = document.getElementById('copyBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const markBtn = document.getElementById('markBtn');
+    // Mobile dock buttons (always on screen on phones)
+    const dockBack = document.getElementById('dockBack');
+    const dockPlay = document.getElementById('dockPlay');
+    const dockFwd = document.getElementById('dockFwd');
+
+    const countInfo = document.getElementById('countInfo');
+    const autosaveBadge = document.getElementById('autosaveBadge');
+
+    let loopStart = null;
+    let loopEnd = null;
+    let doLoop = false;
+    let currentFileKey = 'transcriber-default';
+
+    function fmtTime(t) {
+      if (!isFinite(t)) return '00:00';
+      const h = Math.floor(t / 3600);
+      const m = Math.floor((t % 3600) / 60);
+      const s = Math.floor(t % 60);
+      const hh = h > 0 ? String(h).padStart(2, '0') + ':' : '';
+      return hh + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+    }
+
+    function updateTimeReadout() {
+      timeReadout.textContent = `${fmtTime(player.currentTime)} / ${fmtTime(player.duration)}`;
+    }
+
+    function updateCounts() {
+      const text = editor.value;
+      const chars = text.length;
+      const words = (text.trim().match(/\S+/g) || []).length;
+      countInfo.textContent = `${chars} chars • ${words} words`;
+    }
+
+    function saveLocal() {
+      try {
+        localStorage.setItem(currentFileKey, editor.value);
+        autosaveBadge.textContent = 'ON';
+      } catch (e) {
+        autosaveBadge.textContent = 'OFF';
+      }
+    }
+
+    function loadLocal() {
+      const v = localStorage.getItem(currentFileKey);
+      if (v) {
+        editor.value = v;
+        updateCounts();
+      }
+    }
+
+    // Audio file loading
+    audioFile.addEventListener('change', () => {
+      const f = audioFile.files && audioFile.files[0];
+      if (!f) {
+        alert('No file selected. If the picker didn\'t appear, open this page in Chrome (not an in‑app browser) and make sure the audio is stored locally (e.g., Downloads). If it\'s in Google Drive, mark it Available offline first.');
+        return;
+      }
+      const url = URL.createObjectURL(f);
+      player.src = url;
+      player.playbackRate = Number(speedSel.value || 1);
+      fileName.textContent = f.name;
+      currentFileKey = 'transcriber-' + f.name;
+      loadLocal();
+      loopStart = null; loopEnd = null; doLoop = false;
+      loopA.textContent = '–'; loopB.textContent = '–'; toggleLoop.textContent = 'Loop: Off';
+    });
+
+    // Controls
+    backBtn.addEventListener('click', () => {
+      const s = Math.max(1, Number(skipSeconds.value) || 5);
+      player.currentTime = Math.max(0, player.currentTime - s);
+      updateTimeReadout();
+    });
+
+    fwdBtn.addEventListener('click', () => {
+      const s = Math.max(1, Number(skipSeconds.value) || 5);
+      player.currentTime = Math.min(player.duration || player.currentTime + s, player.currentTime + s);
+      updateTimeReadout();
+    });
+
+    playBtn.addEventListener('click', () => {
+      if (player.paused) {
+        player.play().catch(()=>{});
+        playBtn.textContent = '⏸️ Pause';
+      } else {
+        player.pause();
+        playBtn.textContent = '▶️ Play';
+      }
+    });
+
+    speedSel.addEventListener('change', () => {
+      player.playbackRate = Number(speedSel.value || 1);
+    });
+
+    player.addEventListener('timeupdate', () => {
+      updateTimeReadout();
+      if (doLoop && loopStart != null && loopEnd != null) {
+        if (player.currentTime >= loopEnd) {
+          player.currentTime = loopStart;
+          player.play().catch(()=>{});
+        }
+      }
+    });
+
+    player.addEventListener('loadedmetadata', updateTimeReadout);
+    // Sync dock play button text with player state
+    player.addEventListener('play', () => { if (dockPlay) dockPlay.textContent = '⏸️ Pause'; });
+    player.addEventListener('pause', () => { if (dockPlay) dockPlay.textContent = '▶️ Play'; });
+
+    // Wire dock buttons to main controls
+    if (dockBack) dockBack.addEventListener('click', () => backBtn.click());
+    if (dockFwd) dockFwd.addEventListener('click', () => fwdBtn.click());
+    if (dockPlay) dockPlay.addEventListener('click', () => playBtn.click());
+    player.addEventListener('pause', () => playBtn.textContent = '▶️ Play');
+    player.addEventListener('play', () => playBtn.textContent = '⏸️ Pause');
+
+    setA.addEventListener('click', () => {
+      loopStart = player.currentTime;
+      loopA.textContent = fmtTime(loopStart);
+    });
+    setB.addEventListener('click', () => {
+      loopEnd = player.currentTime;
+      loopB.textContent = fmtTime(loopEnd);
+    });
+    toggleLoop.addEventListener('click', () => {
+      doLoop = !doLoop;
+      toggleLoop.textContent = 'Loop: ' + (doLoop ? 'On' : 'Off');
+      if (doLoop && loopStart != null) {
+        player.currentTime = loopStart;
+        player.play().catch(()=>{});
+      }
+    });
+
+    // Editor features
+    insertTs.addEventListener('click', () => {
+      const ts = '[' + fmtTime(player.currentTime) + '] ';
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.setRangeText(ts, start, end, 'end');
+      updateCounts();
+      saveLocal();
+    });
+
+    speakerPreset.addEventListener('change', () => {
+      const val = speakerPreset.value;
+      if (!val) return;
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.setRangeText((start>0?'\n':'') + val + ' ', start, end, 'end');
+      speakerPreset.selectedIndex = 0;
+      updateCounts();
+      saveLocal();
+    });
+
+    markBtn.addEventListener('click', () => {
+      const tag = ' [UNCLEAR] ';
+      const start = editor.selectionStart;
+      const end = editor.selectionEnd;
+      editor.setRangeText(tag, start, end, 'end');
+      updateCounts();
+      saveLocal();
+    });
+
+    editor.addEventListener('input', () => { updateCounts(); saveLocal(); });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(editor.value);
+        copyBtn.textContent = 'Copied ✔';
+      } catch (e) {
+        alert('Copy failed. You can still use Download .txt');
+      } finally {
+        setTimeout(() => copyBtn.textContent = 'Copy text', 1000);
+      }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      if (!confirm('Clear all text?')) return;
+      editor.value = '';
+      updateCounts();
+      saveLocal();
+    });
+
+    function download(filename, text) {
+      const blob = new Blob([text], {type: 'text/plain'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      const base = (fileName.textContent || 'audio').replace(/\.[^/.]+$/, '');
+      download(`${base}-transcript.txt`, editor.value);
+    });
+
+    // Initialize counts and autosave state
+    updateCounts();
+    saveLocal();
+    // Ensure body has bottom space for fixed mobile dock
+    document.body.classList.add('with-dock');
+
+    // Show environment warning for in-app browsers or GitHub code viewer
+    try {
+      const ua = navigator.userAgent || '';
+      const host = location.hostname || '';
+      const inApp = /FBAN|FBAV|Instagram|Line\//i.test(ua);
+      const onGitHubCodeViewer = /github\.com$/i.test(host);
+      if (inApp || onGitHubCodeViewer) {
+        document.getElementById('envWarning').style.display = 'block';
+      }
+    } catch (_) {}
+  </script>
+</body>
+</html>
