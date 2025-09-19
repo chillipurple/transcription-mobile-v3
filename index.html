@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Fadilas Mobile Transcriber</title>
   <style>
     :root {
@@ -16,20 +16,24 @@
       --btn: #334155;
     }
     * { box-sizing: border-box; }
+    html, body { width:100%; max-width:100%; overflow-x:hidden; -webkit-text-size-adjust:100%; }
+    body { margin: 0; }
     body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--bg); color: var(--text); }
     header { background: linear-gradient(180deg, #0b1224 0%, #0f172a 100%); padding: 12px 12px 8px; border-bottom: 1px solid #1f2937; }
     h1 { margin: 0; font-size: 18px; }
     .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
 
-    main { padding: 12px; display: grid; gap: 12px; max-width: 900px; margin: 0 auto; }
+    main { padding: 12px; display: grid; gap: 12px; max-width: 900px; width: 100%; margin: 0 auto; }
 
-    .card { background: var(--panel); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; }
+    .card { background: var(--panel); border: 1px solid #1f2937; border-radius: 14px; padding: 12px; width:100%; }
 
     .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
     input[type="file"], input[type="number"], select, button, input[type="text"], input[type="url"] { 
       background: var(--panel-2); color: var(--text); border: 1px solid #374151; border-radius: 10px; padding: 10px 12px; font-size: 16px; 
+      max-width:100%;
     }
+    input[type="file"]{ width:100%; }
     input[type="number"] { width: 80px; }
     input[type="url"] { flex: 1; min-width: 180px; }
 
@@ -38,13 +42,13 @@
     button.ghost { background: transparent; }
     button.danger { background: var(--danger); color: #fff; border-color: #b91c1c; }
 
-    .controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 8px; }
+    .controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 8px; width:100%; }
     .controls button { padding: 12px; font-weight: 600; border-radius: 12px; }
     .controls .wide { grid-column: span 2; }
 
     .small { font-size: 12px; color: var(--muted); }
 
-    textarea { width: 100%; min-height: 46vh; resize: vertical; background: var(--panel-2); border: 1px solid #374151; color: var(--text); padding: 12px; border-radius: 12px; line-height: 1.4; font-size: 16px; }
+    textarea { width: 100%; min-height: 48vh; resize: vertical; background: var(--panel-2); border: 1px solid #374151; color: var(--text); padding: 12px; border-radius: 12px; line-height: 1.45; font-size: 16px; }
 
     .toolbar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }
     .toolbar button, .toolbar select { padding: 10px; border-radius: 12px; }
@@ -59,6 +63,11 @@
 
     .footer { text-align: center; color: var(--muted); font-size: 12px; padding: 20px 0 40px; }
   .mobile-dock{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--panel);border-top:1px solid #1f2937;padding:8px 12px;} .mobile-dock .dock-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;} .mobile-dock button{padding:14px;border-radius:12px;font-weight:700;} @media (min-width:880px){.mobile-dock{display:none;}} body.with-dock{padding-bottom:92px;} 
+  @media (max-width: 480px){ .controls{ grid-template-columns: repeat(3,1fr); } }
+    @supports (padding: max(0px)){
+      body{ padding-left: max(0px, env(safe-area-inset-left)); padding-right: max(0px, env(safe-area-inset-right)); }
+      .mobile-dock{ padding-bottom: max(8px, env(safe-area-inset-bottom)); }
+    }
   </style>
 </head>
 <body>
