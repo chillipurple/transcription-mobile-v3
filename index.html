@@ -26,20 +26,36 @@
 
     * { box-sizing: border-box; }
     
-    html, body { 
-      width: 100%; 
-      max-width: 100%; 
-      overflow-x: hidden; 
-      -webkit-text-size-adjust: 100%; 
-      margin: 0;
-      padding: 0;
+    /* Prevent viewport shifting and zooming */
+    html {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
     }
-    
-    body { 
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
+
+    body {
+      width: 100%;
+      height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      position: relative;
+      /* Prevent double-tap zoom globally */
+      touch-action: manipulation;
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+
+    /* Container centering and width control */
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      display: grid;
+      gap: 24px;
+      padding-bottom: 120px;
+      width: 100%;
+      box-sizing: border-box;
     }
 
     /* Header */
@@ -153,7 +169,7 @@
     /* Audio controls grid */
     .audio-controls {
       display: grid;
-      grid-template-columns: 1fr auto auto auto;
+      grid-template-columns: auto auto auto auto 1fr;
       gap: 12px;
       align-items: center;
       margin-bottom: 20px;
@@ -167,6 +183,47 @@
       padding: 8px 12px;
       border-radius: 8px;
       border: 1px solid var(--border);
+    }
+
+    /* Progress bar */
+    .progress-container {
+      margin-bottom: 20px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: var(--panel-dark);
+      border-radius: 4px;
+      position: relative;
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 0.1s ease;
+    }
+
+    .progress-slider {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 20px;
+      height: 20px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: grab;
+      border: 2px solid white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      left: 0%;
+    }
+
+    .progress-slider:active {
+      cursor: grabbing;
     }
 
     /* Play controls */
@@ -188,7 +245,7 @@
     /* Loop controls */
     .loop-controls {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 12px;
       margin-bottom: 12px;
     }
@@ -425,6 +482,11 @@
       padding: 16px 20px;
       padding-bottom: max(16px, env(safe-area-inset-bottom));
       box-shadow: var(--shadow-lg);
+      /* Prevent double-tap zoom */
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
 
     .dock-controls {
@@ -439,6 +501,11 @@
       padding: 14px;
       font-weight: 600;
       border-radius: 12px;
+      /* Prevent double-tap zoom */
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
 
     @media (min-width: 768px) {
@@ -569,9 +636,15 @@
           <option value="1.25">1.25×</option>
           <option value="1.5">1.5×</option>
         </select>
+        <div class="time-display" id="timeReadout">00:00 / 00:00</div>
       </div>
 
-      <div class="time-display" id="timeReadout">00:00 / 00:00</div>
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="progress-slider" id="progressSlider"></div>
+        </div>
+      </div>
 
       <div class="play-controls">
         <button id="backBtn">⏪ Back</button>
@@ -580,13 +653,13 @@
       </div>
 
       <div class="loop-controls">
-        <button id="setA">Set A</button>
-        <button id="setB">Set B</button>
+        <button id="setLoopIn">🔵 Loop In</button>
+        <button id="setLoopOut">🔴 Loop Out</button>
         <button id="toggleLoop" class="ghost">Loop: Off</button>
       </div>
 
       <div class="loop-info">
-        <span>A: <span id="loopA">–</span> | B: <span id="loopB">–</span></span>
+        <span>In: <span id="loopIn">–</span> | Out: <span id="loopOut">–</span></span>
         <span>Save: <span class="badge success" id="autosaveBadge">CHECKING</span></span>
       </div>
     </section>
@@ -648,7 +721,7 @@
       <ul class="help-list">
         <li><strong>Load audio:</strong> Tap the file area above to select MP3, M4A, WAV, or other audio files</li>
         <li><strong>Playback:</strong> Use Play/Pause, Back/Forward buttons. Adjust speed as needed</li>
-        <li><strong>Looping:</strong> Set A and B points, then enable Loop for difficult sections</li>
+        <li><strong>Looping:</strong> Set "Loop In" and "Loop Out" points, then toggle Loop on for difficult sections</li>
         <li><strong>Timestamps:</strong> Click "Timestamp" to insert current audio time</li>
         <li><strong>Email:</strong> "Email to..." opens your email app with the transcript attached or in the body</li>
         <li><strong>Auto-save:</strong> Your work saves automatically every few seconds</li>
@@ -686,11 +759,16 @@
     const speedSel = document.getElementById('speed');
     const timeReadout = document.getElementById('timeReadout');
 
-    const setA = document.getElementById('setA');
-    const setB = document.getElementById('setB');
+    const setLoopIn = document.getElementById('setLoopIn');
+    const setLoopOut = document.getElementById('setLoopOut');
     const toggleLoop = document.getElementById('toggleLoop');
-    const loopA = document.getElementById('loopA');
-    const loopB = document.getElementById('loopB');
+    const loopIn = document.getElementById('loopIn');
+    const loopOut = document.getElementById('loopOut');
+
+    // Progress bar elements
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+    const progressSlider = document.getElementById('progressSlider');
 
     const editor = document.getElementById('editor');
     const insertTs = document.getElementById('insertTs');
@@ -861,6 +939,15 @@
 
     function updateTimeReadout() {
       timeReadout.textContent = `${fmtTime(player.currentTime)} / ${fmtTime(player.duration)}`;
+      updateProgressBar();
+    }
+
+    function updateProgressBar() {
+      if (player.duration) {
+        const progress = (player.currentTime / player.duration) * 100;
+        progressFill.style.width = progress + '%';
+        progressSlider.style.left = progress + '%';
+      }
     }
 
     function updateCounts() {
@@ -935,7 +1022,7 @@
       
       loadLocal();
       loopStart = null; loopEnd = null; doLoop = false;
-      loopA.textContent = '–'; loopB.textContent = '–'; toggleLoop.textContent = 'Loop: Off';
+      loopIn.textContent = '–'; loopOut.textContent = '–'; toggleLoop.textContent = 'Loop: Off';
     });
 
     // Controls
@@ -967,7 +1054,7 @@
 
     player.addEventListener('timeupdate', () => {
       updateTimeReadout();
-      if (doLoop && loopStart != null && loopEnd != null) {
+      if (doLoop && loopStart !== null && loopEnd !== null) {
         if (player.currentTime >= loopEnd) {
           player.currentTime = loopStart;
           player.play().catch(()=>{});
@@ -975,7 +1062,10 @@
       }
     });
 
-    player.addEventListener('loadedmetadata', updateTimeReadout);
+    player.addEventListener('loadedmetadata', () => {
+      updateTimeReadout();
+      updateProgressBar();
+    });
     
     player.addEventListener('play', () => { 
       playBtn.textContent = '⏸️ Pause';
@@ -990,20 +1080,86 @@
     if (dockFwd) dockFwd.addEventListener('click', () => fwdBtn.click());
     if (dockPlay) dockPlay.addEventListener('click', () => playBtn.click());
 
-    setA.addEventListener('click', () => {
-      loopStart = player.currentTime;
-      loopA.textContent = fmtTime(loopStart);
+    // Progress bar interaction
+    let isDragging = false;
+
+    progressBar.addEventListener('click', (e) => {
+      if (!player.duration) return;
+      const rect = progressBar.getBoundingClientRect();
+      const percent = (e.clientX - rect.left) / rect.width;
+      player.currentTime = percent * player.duration;
+      updateTimeReadout();
     });
-    setB.addEventListener('click', () => {
+
+    progressSlider.addEventListener('mousedown', () => {
+      isDragging = true;
+      document.addEventListener('mousemove', handleDrag);
+      document.addEventListener('mouseup', stopDrag);
+    });
+
+    progressSlider.addEventListener('touchstart', (e) => {
+      isDragging = true;
+      e.preventDefault();
+      document.addEventListener('touchmove', handleTouchDrag, { passive: false });
+      document.addEventListener('touchend', stopDrag);
+    });
+
+    function handleDrag(e) {
+      if (!isDragging || !player.duration) return;
+      const rect = progressBar.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      player.currentTime = percent * player.duration;
+      updateTimeReadout();
+    }
+
+    function handleTouchDrag(e) {
+      if (!isDragging || !player.duration) return;
+      e.preventDefault();
+      const rect = progressBar.getBoundingClientRect();
+      const touch = e.touches[0];
+      const percent = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+      player.currentTime = percent * player.duration;
+      updateTimeReadout();
+    }
+
+    function stopDrag() {
+      isDragging = false;
+      document.removeEventListener('mousemove', handleDrag);
+      document.removeEventListener('mouseup', stopDrag);
+      document.removeEventListener('touchmove', handleTouchDrag);
+      document.removeEventListener('touchend', stopDrag);
+    }
+
+    // Loop controls with better functionality
+    setLoopIn.addEventListener('click', () => {
+      loopStart = player.currentTime;
+      loopIn.textContent = fmtTime(loopStart);
+      setLoopIn.style.background = 'var(--accent)';
+      setLoopIn.style.color = 'white';
+    });
+
+    setLoopOut.addEventListener('click', () => {
       loopEnd = player.currentTime;
-      loopB.textContent = fmtTime(loopEnd);
+      loopOut.textContent = fmtTime(loopEnd);
+      setLoopOut.style.background = 'var(--danger)';
+      setLoopOut.style.color = 'white';
     });
     toggleLoop.addEventListener('click', () => {
       doLoop = !doLoop;
       toggleLoop.textContent = 'Loop: ' + (doLoop ? 'On' : 'Off');
-      if (doLoop && loopStart != null) {
+      toggleLoop.style.background = doLoop ? 'var(--accent)' : 'transparent';
+      toggleLoop.style.color = doLoop ? 'white' : 'var(--text)';
+      
+      if (doLoop && loopStart !== null && loopEnd !== null) {
+        // Jump to loop start when enabling loop
         player.currentTime = loopStart;
         player.play().catch(()=>{});
+      } else if (doLoop && (loopStart === null || loopEnd === null)) {
+        alert('Please set both Loop In and Loop Out points first.');
+        doLoop = false;
+        toggleLoop.textContent = 'Loop: Off';
+        toggleLoop.style.background = 'transparent';
+        toggleLoop.style.color = 'var(--text)';
       }
     });
 
