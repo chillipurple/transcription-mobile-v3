@@ -334,19 +334,35 @@
       grid-column: 1 / -1;
     }
 
+    /* Use intersection observer for mobile-friendly sticky behavior */
     .editor-section.sticky {
-      position: sticky;
+      position: fixed;
       top: 0;
+      left: 0;
+      right: 0;
       z-index: 30;
       background: var(--bg);
       border-top: 1px solid var(--border);
-      margin-top: 20px;
-      padding-top: 20px;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+      box-shadow: var(--shadow-lg);
     }
 
     .editor-section.sticky .card {
       border-radius: 0 0 16px 16px;
       border-top: none;
+      margin: 0;
+    }
+
+    /* Placeholder to maintain layout when sticky */
+    .editor-placeholder {
+      display: none;
+    }
+
+    .editor-placeholder.active {
+      display: block;
+      height: 600px; /* Approximate height of editor section */
     }
 
     .editor-header {
@@ -674,7 +690,8 @@
     </section>
 
     <!-- Transcript Editor -->
-    <section class="card editor-section">
+    <div class="editor-placeholder" id="editorPlaceholder"></div>
+    <section class="card editor-section" id="editorSection">
       <div class="editor-header">
         <h2 class="card-title">
           <span class="icon">📝</span>
@@ -797,7 +814,8 @@
     const saveWarning = document.getElementById('saveWarning');
 
     // Get editor section for sticky behavior
-    const editorSection = document.querySelector('.editor-section');
+    const editorSection = document.getElementById('editorSection');
+    const editorPlaceholder = document.getElementById('editorPlaceholder');
 
     let loopStart = null;
     let loopEnd = null;
@@ -1376,22 +1394,71 @@
       }
     });
 
-    // Sticky editor section behavior
-    function handleScroll() {
-      const editorRect = editorSection.getBoundingClientRect();
-      const headerHeight = document.querySelector('.header').offsetHeight;
+    // Mobile-friendly sticky editor using Intersection Observer
+    let isSticky = false;
+    let editorHeight = 0;
+
+    function makeSticky() {
+      if (isSticky) return;
       
-      if (editorRect.top <= headerHeight && !editorSection.classList.contains('sticky')) {
-        editorSection.classList.add('sticky');
-        editorSection.style.top = headerHeight + 'px';
-      } else if (editorRect.top > headerHeight && editorSection.classList.contains('sticky')) {
-        editorSection.classList.remove('sticky');
-        editorSection.style.top = '';
+      editorHeight = editorSection.offsetHeight;
+      editorPlaceholder.style.height = editorHeight + 'px';
+      editorPlaceholder.classList.add('active');
+      editorSection.classList.add('sticky');
+      isSticky = true;
+      
+      // Adjust for mobile viewport
+      if (window.innerWidth <= 768) {
+        editorSection.style.left = '0';
+        editorSection.style.right = '0';
+        editorSection.style.padding = '16px';
       }
     }
 
-    window.addEventListener('scroll', handleScroll);
-    window.addEventListener('resize', handleScroll);
+    function removeSticky() {
+      if (!isSticky) return;
+      
+      editorPlaceholder.classList.remove('active');
+      editorSection.classList.remove('sticky');
+      editorSection.style.left = '';
+      editorSection.style.right = '';
+      editorSection.style.padding = '';
+      isSticky = false;
+    }
+
+    // Use Intersection Observer for better mobile performance
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            removeSticky();
+          } else {
+            // Check if we've scrolled past the editor
+            const rect = editorSection.getBoundingClientRect();
+            if (rect.top < 0) {
+              makeSticky();
+            }
+          }
+        });
+      }, {
+        threshold: 0,
+        rootMargin: '-60px 0px 0px 0px' // Account for header
+      });
+
+      observer.observe(editorSection);
+    } else {
+      // Fallback for older browsers
+      window.addEventListener('scroll', () => {
+        const rect = editorSection.getBoundingClientRect();
+        const headerHeight = 60; // Approximate header height
+        
+        if (rect.top <= headerHeight && !isSticky) {
+          makeSticky();
+        } else if (rect.top > headerHeight && isSticky) {
+          removeSticky();
+        }
+      });
+    }
 
     window.addEventListener('beforeunload', (e) => {
       if (hasUnsavedChanges) {
